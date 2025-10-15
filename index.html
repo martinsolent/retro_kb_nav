@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Retro BB Board</title>
+  <style>
+    :root {
+      --bg: #0b0f0b;
+      --fg: #8fffa8;
+      --muted: #3aa35c;
+      --accent: #d8ffd8;
+      --dim: #1c2a1e;
+      --warning: #ffd166;
+    }
+    html, body {
+      height: 100%;
+      margin: 0;
+      background: var(--bg);
+      color: var(--fg);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    }
+    /* CRT vibe */
+    body { 
+      text-shadow: 0 0 6px rgba(143,255,168,0.5);
+    }
+    .crt::after {
+      content: "";
+      pointer-events: none;
+      position: fixed;
+      inset: 0;
+      background: repeating-linear-gradient(
+        to bottom,
+        rgba(0,0,0,0),
+        rgba(0,0,0,0) 2px,
+        rgba(255,255,255,0.02) 3px,
+        rgba(0,0,0,0) 4px
+      );
+      mix-blend-mode: overlay;
+    }
+
+    .container {
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      height: 100vh;
+    }
+    header {
+      padding: 10px 12px;
+      border-bottom: 2px solid var(--muted);
+      background: linear-gradient(180deg, rgba(20,35,24,0.7), rgba(10,20,14,0.4));
+    }
+    header .title { font-weight: 800; letter-spacing: 2px; }
+    header .subtitle { color: var(--muted); opacity: 0.9; font-size: 12px; }
+
+    main {
+      display: grid;
+      grid-template-columns: 280px 360px 1fr;
+      gap: 8px;
+      padding: 8px;
+      overflow: hidden;
+    }
+    .panel {
+      border: 2px solid var(--muted);
+      background: #0d130e;
+      box-shadow: inset 0 0 40px rgba(0,0,0,0.6);
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+    .panel h2 {
+      margin: 0;
+      padding: 8px 10px;
+      border-bottom: 1px dashed var(--muted);
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--accent);
+    }
+    .list {
+      overflow: auto;
+      scroll-behavior: smooth;
+      padding: 6px;
+      height: 100%;
+    }
+    .row {
+      display: grid;
+      grid-template-columns: 24px 1fr auto;
+      gap: 8px;
+      align-items: center;
+      padding: 6px 8px;
+      border-radius: 6px;
+      cursor: default;
+      outline: none;
+    }
+    .row[aria-selected="true"] {
+      background: linear-gradient(90deg, rgba(58,163,92,0.25), rgba(58,163,92,0.08));
+      border: 1px solid var(--muted);
+    }
+    .row .idx { color: var(--muted); opacity: 0.9; }
+    .row .meta { color: var(--muted); font-size: 12px; }
+    .row .title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    .posts {
+      overflow: auto;
+      padding: 6px 8px 56px;
+      line-height: 1.45;
+    }
+    .post {
+      border: 1px dashed var(--muted);
+      padding: 8px;
+      border-radius: 6px;
+      margin-bottom: 8px;
+      background: rgba(16,32,20,0.35);
+    }
+    .post .byline {
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 4px;
+    }
+
+    .statusbar {
+      border-top: 2px solid var(--muted);
+      padding: 8px 10px;
+      display: flex;
+      gap: 16px;
+      font-size: 12px;
+      color: var(--accent);
+      background: #0c110d;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .kbd { 
+      border: 1px solid var(--muted); 
+      padding: 1px 6px; 
+      border-radius: 4px; 
+      background: #0a120c; 
+      font-weight: 700; 
+    }
+    .level { color: var(--warning); font-weight: 700; }
+
+    @media (max-width: 1024px) {
+      main { grid-template-columns: 1fr; }
+      .panel { height: 33vh; }
+    }
+  </style>
+</head>
+<body class="crt">
+  <div class="container" aria-label="Retro BB Board">
+    <header>
+      <div class="title">SOLENT COMPUTING DASHBOARD</div>
+      <div class="subtitle">Pure keyboard navigation. No mouse needed.</div>
+    </header>
+
+    <main>
+      <section class="panel" aria-labelledby="boards-label">
+        <h2 id="boards-label">Boards</h2>
+        <div id="boards" class="list" role="listbox" aria-label="Boards list" aria-activedescendant="">
+          <!-- Boards render here -->
+        </div>
+      </section>
+
+      <section class="panel" aria-labelledby="threads-label">
+        <h2 id="threads-label">Threads</h2>
+        <div id="threads" class="list" role="listbox" aria-label="Threads list" aria-activedescendant="">
+          <!-- Threads render here -->
+        </div>
+      </section>
+
+      <section class="panel" aria-labelledby="posts-label">
+        <h2 id="posts-label">Posts</h2>
+        <div id="posts" class="posts" role="region" aria-live="polite">
+          <!-- Posts render here -->
+        </div>
+      </section>
+    </main>
+
+    <footer class="statusbar" aria-label="Keyboard help and status">
+      <div><span class="kbd">↑</span><span class="kbd">↓</span> Move</div>
+      <div><span class="kbd">Enter</span> Open</div>
+      <div><span class="kbd">Esc</span><span class="kbd">←</span> Back</div>
+      <div><span class="kbd">Tab</span> Cycle panels</div>
+      <div><span class="kbd">Home</span><span class="kbd">End</span> Jump</div>
+      <div><span class="kbd">PgUp</span><span class="kbd">PgDn</span> Scroll</div>
+      <div>Level: <span id="level" class="level">Boards</span></div>
+    </footer>
+  </div>
+
+  <script>
+    // Demo data
+    const data = [
+      {
+        name: "General",
+        description: "Announcements and chat",
+        threads: [
+          {
+            title: "Welcome to Retro BB",
+            author: "sysop",
+            replies: 3,
+            updated: "2025-08-19",
+            posts: [
+              { by: "sysop", at: "2025-08-19 09:00", text: "Read the keys in the bar. Explore with arrows." },
+              { by: "alex", at: "2025-08-19 10:22", text: "Loving the CRT glow." },
+              { by: "jay", at: "2025-08-19 12:05", text: "Works well on keyboard only." }
+            ]
+          },
+          {
+            title: "Introduce yourself",
+            author: "alex",
+            replies: 5,
+            updated: "2025-08-18",
+            posts: [
+              { by: "alex", at: "2025-08-18 08:00", text: "Say hello." },
+              { by: "sue", at: "2025-08-18 08:15", text: "Hi all." }
+            ]
+          }
+        ]
+      },
+      {
+        name: "Tech",
+        description: "Code, tools and tips",
+        threads: [
+          {
+            title: "Keyboard UX patterns",
+            author: "sue",
+            replies: 8,
+            updated: "2025-08-17",
+            posts: [
+              { by: "sue", at: "2025-08-17 13:30", text: "Listbox roles and aria-selected help." },
+              { by: "lee", at: "2025-08-17 15:10", text: "Use scrollIntoView for selection." }
+            ]
+          },
+          {
+            title: "Fave terminal fonts",
+            author: "lee",
+            replies: 2,
+            updated: "2025-08-16",
+            posts: [
+              { by: "lee", at: "2025-08-16 11:00", text: "JetBrains Mono and Iosevka." }
+            ]
+          }
+        ]
+      },
+      {
+        name: "Off Topic",
+        description: "Anything goes",
+        threads: [
+          {
+            title: "Retro games",
+            author: "jay",
+            replies: 12,
+            updated: "2025-08-15",
+            posts: [
+              { by: "jay", at: "2025-08-15 18:45", text: "What are you playing this week" },
+              { by: "alex", at: "2025-08-15 19:02", text: "Doom and Quake." }
+            ]
+          }
+        ]
+      }
+    ];
+
+    // App state
+    const State = {
+      level: "boards", // boards | threads | posts
+      boardIndex: 0,
+      threadIndex: 0,
+      postIndex: 0
+    };
+
+    // DOM refs
+    const elBoards = document.getElementById('boards');
+    const elThreads = document.getElementById('threads');
+    const elPosts = document.getElementById('posts');
+    const elLevel = document.getElementById('level');
+
+    function setLevel(level) {
+      State.level = level;
+      elLevel.textContent = level.charAt(0).toUpperCase() + level.slice(1);
+      render();
+    }
+
+    function row(id, idx, title, meta) {
+      const node = document.createElement('div');
+      node.className = 'row';
+      node.id = id;
+      node.setAttribute('role', 'option');
+      node.dataset.index = idx;
+      node.innerHTML = `
+        <div class="idx">${String(idx + 1).padStart(2,'0')}</div>
+        <div class="title" title="${title}">${title}</div>
+        <div class="meta">${meta}</div>
+      `;
+      return node;
+    }
+
+    function selectInList(listEl, index) {
+      const options = listEl.querySelectorAll('.row');
+      options.forEach(opt => opt.setAttribute('aria-selected', 'false'));
+      const target = options[index];
+      if (target) {
+        target.setAttribute('aria-selected', 'true');
+        listEl.setAttribute('aria-activedescendant', target.id);
+        target.scrollIntoView({ block: 'nearest' });
+      }
+    }
+
+    function renderBoards() {
+      elBoards.innerHTML = '';
+      data.forEach((b, i) => {
+        const id = `board-${i}`;
+        const meta = `${b.threads.length} threads`;
+        elBoards.appendChild(row(id, i, `${b.name} — ${b.description}`, meta));
+      });
+      selectInList(elBoards, State.boardIndex);
+    }
+
+    function renderThreads() {
+      elThreads.innerHTML = '';
+      const board = data[State.boardIndex];
+      board.threads.forEach((t, i) => {
+        const id = `thread-${i}`;
+        const meta = `${t.replies} replies • ${t.updated}`;
+        elThreads.appendChild(row(id, i, t.title, meta));
+      });
+      selectInList(elThreads, State.threadIndex);
+    }
+
+    function renderPosts() {
+      elPosts.innerHTML = '';
+      const board = data[State.boardIndex];
+      const thread = board.threads[State.threadIndex];
+      thread.posts.forEach((p, i) => {
+        const post = document.createElement('article');
+        post.className = 'post';
+        post.innerHTML = `
+          <div class="byline">${p.by} • ${p.at}</div>
+          <div class="text">${p.text}</div>
+        `;
+        elPosts.appendChild(post);
+      });
+      // Ensure top visible when entering posts
+      elPosts.scrollTop = 0;
+    }
+
+    function render() {
+      renderBoards();
+      renderThreads();
+      renderPosts();
+      // Visual emphasis per level
+      [elBoards, elThreads, elPosts].forEach(el => el.parentElement.style.opacity = '0.65');
+      if (State.level === 'boards') elBoards.parentElement.style.opacity = '1';
+      if (State.level === 'threads') elThreads.parentElement.style.opacity = '1';
+      if (State.level === 'posts') elPosts.parentElement.style.opacity = '1';
+    }
+
+    function move(dir) {
+      if (State.level === 'boards') {
+        const max = data.length - 1;
+        State.boardIndex = clamp(State.boardIndex + dir, 0, max);
+        selectInList(elBoards, State.boardIndex);
+      } else if (State.level === 'threads') {
+        const max = data[State.boardIndex].threads.length - 1;
+        State.threadIndex = clamp(State.threadIndex + dir, 0, max);
+        selectInList(elThreads, State.threadIndex);
+      } else {
+        // posts level scrolls instead
+        elPosts.scrollBy({ top: dir * 60, behavior: 'smooth' });
+      }
+    }
+
+    function openSelected() {
+      if (State.level === 'boards') {
+        setLevel('threads');
+      } else if (State.level === 'threads') {
+        setLevel('posts');
+      }
+    }
+
+    function goBack() {
+      if (State.level === 'posts') {
+        setLevel('threads');
+      } else if (State.level === 'threads') {
+        setLevel('boards');
+      }
+    }
+
+    function clamp(n, min, max) { return Math.max(min, Math.min(max, n)); }
+
+    function jumpTo(pos) {
+      if (State.level === 'boards') {
+        const max = data.length - 1;
+        State.boardIndex = pos === 'start' ? 0 : max;
+        selectInList(elBoards, State.boardIndex);
+      } else if (State.level === 'threads') {
+        const max = data[State.boardIndex].threads.length - 1;
+        State.threadIndex = pos === 'start' ? 0 : max;
+        selectInList(elThreads, State.threadIndex);
+      } else {
+        elPosts.scrollTop = pos === 'start' ? 0 : elPosts.scrollHeight;
+      }
+    }
+
+    function page(dir) {
+      if (State.level === 'posts') {
+        elPosts.scrollBy({ top: dir * elPosts.clientHeight * 0.9, behavior: 'smooth' });
+      } else if (State.level === 'boards') {
+        elBoards.scrollBy({ top: dir * elBoards.clientHeight * 0.9, behavior: 'smooth' });
+      } else {
+        elThreads.scrollBy({ top: dir * elThreads.clientHeight * 0.9, behavior: 'smooth' });
+      }
+    }
+
+    function cyclePanel() {
+      if (State.level === 'boards') setLevel('threads');
+      else if (State.level === 'threads') setLevel('posts');
+      else setLevel('boards');
+    }
+
+    // Keyboard controls
+    document.addEventListener('keydown', (e) => {
+      switch (e.key) {
+        case 'ArrowUp': e.preventDefault(); move(-1); break;
+        case 'ArrowDown': e.preventDefault(); move(1); break;
+        case 'ArrowLeft': e.preventDefault(); goBack(); break;
+        case 'Escape': e.preventDefault(); goBack(); break;
+        case 'Enter': e.preventDefault(); openSelected(); break;
+        case 'Home': e.preventDefault(); jumpTo('start'); break;
+        case 'End': e.preventDefault(); jumpTo('end'); break;
+        case 'PageUp': e.preventDefault(); page(-1); break;
+        case 'PageDown': e.preventDefault(); page(1); break;
+        case 'Tab': e.preventDefault(); cyclePanel(); break;
+      }
+    });
+
+    // Mouse click support without focus theft
+    [elBoards, elThreads].forEach(list => {
+      list.addEventListener('click', (e) => {
+        const row = e.target.closest('.row');
+        if (!row) return;
+        const idx = Number(row.dataset.index);
+        if (list === elBoards) {
+          State.boardIndex = idx; setLevel('threads');
+        } else {
+          State.threadIndex = idx; setLevel('posts');
+        }
+      });
+    });
+
+    // Initial render
+    render();
+  </script>
+</body>
+</html>
